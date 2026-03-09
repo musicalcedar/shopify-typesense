@@ -1,0 +1,20 @@
+{
+  "name": "shopify-typesense",
+  "version": "1.0.0",
+  "description": "CLI para sincronizar productos de Shopify con Typesense",
+  "type": "module",
+  "bin": {
+    "shopify-typesense": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@shopify/admin-api-client": "^1.0.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "dotenv": "^16.4.0",
+    "ora": "^8.0.0",
+    "typesense": "^1.8.2"
+  }
+}
