@@ -41,7 +41,7 @@ async function runSync({ incremental = false } = {}) {
     };
   } catch (err) {
     console.error('[sync] Failed:', err.message);
-    throw err;
+    return { status: 500, error: err.message };
   } finally {
     syncing = false;
   }
@@ -90,9 +90,15 @@ const server = createServer(async (req, res) => {
         return;
       }
 
+      if (url.searchParams.get('reset') === 'true') {
+        syncing = false;
+        json(res, 200, { message: 'Lock reset' });
+        return;
+      }
+
       const incremental = url.searchParams.get('mode') === 'watch';
       const syncResult = await runSync({ incremental });
-      json(res, syncResult.status || 200, syncResult.result || syncResult);
+      json(res, syncResult.status || 200, syncResult.error ? { error: syncResult.error } : syncResult.result);
       return;
     }
 
