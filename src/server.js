@@ -56,12 +56,7 @@ const server = createServer(async (req, res) => {
 
   try {
     if (path === '/health' && req.method === 'GET') {
-      try {
-        await healthCheck();
-        json(res, 200, { status: 'ok', typesense: 'connected' });
-      } catch {
-        json(res, 200, { status: 'ok', typesense: 'disconnected' });
-      }
+      json(res, 200, { status: 'ok' });
       return;
     }
 
