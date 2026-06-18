@@ -48,10 +48,9 @@ async function waitForTypesense(spinner, retries = 15) {
 }
 
 function printConnectionInfo() {
-  const { host, port, protocol, apiKey } = config.typesense;
+  const { host, port, protocol } = config.typesense;
   console.log('\n' + chalk.green('✅ Typesense corriendo'));
   console.log(chalk.dim(`   URL:     ${protocol}://${host}:${port}`));
-  console.log(chalk.dim(`   API Key: ${apiKey}`));
   console.log(chalk.dim(`   Health:  ${protocol}://${host}:${port}/health`));
   console.log('\n' + chalk.cyan('Próximo paso:') + ' shopify-typesense sync\n');
 }

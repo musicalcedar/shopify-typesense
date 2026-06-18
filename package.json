@@ -6,8 +6,13 @@
   "bin": {
     "shopify-typesense": "./src/index.js"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "server": "node src/server.js",
+    "cron:sync": "node src/cron.js"
   },
   "dependencies": {
     "@shopify/admin-api-client": "^1.0.0",

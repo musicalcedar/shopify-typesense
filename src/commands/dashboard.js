@@ -62,11 +62,10 @@ export async function dashboardCommand() {
 }
 
 function printDashboardInfo() {
-  const { host, port, protocol, apiKey } = config.typesense;
+  const { host, port, protocol } = config.typesense;
   console.log('\n' + chalk.green('✅ Typesense Dashboard corriendo'));
   console.log(chalk.dim(`   Abre: http://localhost:${DASHBOARD_PORT}`));
   console.log(chalk.bold('\nDatos de conexión en el dashboard:'));
   console.log(chalk.dim(`   Host:    ${protocol}://${host}:${port}`));
-  console.log(chalk.dim(`   API Key: ${apiKey}`));
   console.log();
 }
