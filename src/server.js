@@ -14,14 +14,20 @@ async function runSync({ incremental = false } = {}) {
   try {
     validateConfig();
 
-    const updatedAfter = incremental ? new Date(Date.now() - 2 * 60 * 60 * 1000) : null;
+    console.log('[sync] Starting', incremental ? 'incremental' : 'full', 'sync');
+    console.log('[sync] Typesense:', config.typesense.protocol + '://' + config.typesense.host + ':' + config.typesense.port);
 
     await ensureCollection();
+    console.log('[sync] Collection ready');
 
-    const products = await getAllProducts({ updatedAfter });
+    const products = await getAllProducts({ updatedAfter: incremental ? new Date(Date.now() - 2 * 60 * 60 * 1000) : null });
+    console.log('[sync] Fetched', products.length, 'products from Shopify');
+
     const transformed = products.map(transformProduct).filter(Boolean);
     const { imported, failed } = await importDocuments(transformed);
     const stats = await getCollectionStats();
+
+    console.log('[sync] Done — imported:', imported, 'failed:', failed, 'total:', stats.num_documents);
 
     return {
       status: 200,
@@ -33,6 +39,9 @@ async function runSync({ incremental = false } = {}) {
         totalIndexed: stats.num_documents,
       },
     };
+  } catch (err) {
+    console.error('[sync] Failed:', err.message);
+    throw err;
   } finally {
     syncing = false;
   }
@@ -84,6 +93,31 @@ const server = createServer(async (req, res) => {
       const incremental = url.searchParams.get('mode') === 'watch';
       const syncResult = await runSync({ incremental });
       json(res, syncResult.status || 200, syncResult.result || syncResult);
+      return;
+    }
+
+    if (path === '/debug' && req.method === 'GET') {
+      if (!authenticate(req)) {
+        json(res, 401, { error: 'Unauthorized' });
+        return;
+      }
+      json(res, 200, {
+        typesense: {
+          host: config.typesense.host,
+          port: config.typesense.port,
+          protocol: config.typesense.protocol,
+          apiKeySet: !!config.typesense.apiKey,
+        },
+        shopify: {
+          store: config.shopify.store,
+          apiVersion: config.shopify.apiVersion,
+          tokenSet: !!config.shopify.accessToken,
+        },
+        env: {
+          TYPESENSE_URL: process.env.TYPESENSE_URL ? '(set)' : '(not set)',
+          RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT || '(not set)',
+        },
+      });
       return;
     }
 

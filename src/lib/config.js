@@ -1,5 +1,22 @@
 export const isRailway = !!process.env.RAILWAY_ENVIRONMENT;
 
+function parseTypesenseConnection() {
+  const url = process.env.TYPESENSE_URL;
+  if (url) {
+    const parsed = new URL(url);
+    return {
+      host: parsed.hostname,
+      port: parsed.port || '8108',
+      protocol: parsed.protocol.replace(':', ''),
+    };
+  }
+  return {
+    host: process.env.TYPESENSE_HOST || 'localhost',
+    port: process.env.TYPESENSE_PORT || '8108',
+    protocol: process.env.TYPESENSE_PROTOCOL || 'http',
+  };
+}
+
 export const config = {
   shopify: {
     store: process.env.SHOPIFY_STORE,
@@ -7,9 +24,7 @@ export const config = {
     apiVersion: process.env.SHOPIFY_API_VERSION || '2024-01',
   },
   typesense: {
-    host: process.env.TYPESENSE_HOST || 'localhost',
-    port: process.env.TYPESENSE_PORT || '8108',
-    protocol: process.env.TYPESENSE_PROTOCOL || 'http',
+    ...parseTypesenseConnection(),
     apiKey: process.env.TYPESENSE_API_KEY,
   },
   docker: {
