@@ -32,6 +32,10 @@ export const config = {
     volume: process.env.TYPESENSE_DOCKER_VOLUME || 'typesense-data',
     image: process.env.TYPESENSE_DOCKER_IMAGE || 'typesense/typesense:27.0',
   },
+  judgeme: {
+    apiToken: process.env.JUDGEME_API_TOKEN,
+    shopDomain: process.env.JUDGEME_SHOP_DOMAIN,
+  },
   server: {
     port: parseInt(process.env.PORT || '3000', 10),
     syncSecret: process.env.SYNC_SECRET,

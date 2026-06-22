@@ -37,14 +37,6 @@ const PRODUCTS_QUERY = `
               node { url }
             }
           }
-          metafields(first: 1, keys: ["judgeme.review_widget_data"]) {
-            edges {
-              node {
-                key
-                value
-              }
-            }
-          }
           variants(first: 100) {
             edges {
               node {

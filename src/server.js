@@ -4,6 +4,7 @@ import { config, validateConfig, isRailway } from './lib/config.js';
 import { getAllProducts } from './lib/shopify.js';
 import { transformProduct } from './lib/transform.js';
 import { ensureCollection, importDocuments, getCollectionStats, healthCheck } from './lib/typesense.js';
+import { getAllReviews } from './lib/judgeme.js';
 
 let syncing = false;
 
@@ -20,10 +21,13 @@ async function runSync({ incremental = false, drop = false } = {}) {
     await ensureCollection({ drop });
     console.log('[sync] Collection ready');
 
-    const products = await getAllProducts({ updatedAfter: incremental ? new Date(Date.now() - 2 * 60 * 60 * 1000) : null });
+    const [products, ratingsMap] = await Promise.all([
+      getAllProducts({ updatedAfter: incremental ? new Date(Date.now() - 2 * 60 * 60 * 1000) : null }),
+      getAllReviews(),
+    ]);
     console.log('[sync] Fetched', products.length, 'products from Shopify');
 
-    const transformed = products.map(transformProduct).filter(Boolean);
+    const transformed = products.map(p => transformProduct(p, ratingsMap)).filter(Boolean);
     const { imported, failed } = await importDocuments(transformed);
     const stats = await getCollectionStats();
 

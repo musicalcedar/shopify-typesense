@@ -10,7 +10,7 @@ function getPriceRange(priceInCents) {
   return 'Menos de $100.000';
 }
 
-export function transformProduct(product) {
+export function transformProduct(product, ratingsMap) {
   const variants = product.variants.edges.map(e => e.node);
 
   if (variants.length === 0) return null;
@@ -36,10 +36,6 @@ export function transformProduct(product) {
   const image = product.images.edges[0]?.node.url || '';
   const description = stripHtml(product.descriptionHtml);
 
-  const metafieldsMap = Object.fromEntries(
-    (product.metafields?.edges || []).map(e => [e.node.key, e.node.value])
-  );
-
   const doc = {
     id: numericId,
     title: product.title,
@@ -61,15 +57,10 @@ export function transformProduct(product) {
     updated_at: new Date(product.updatedAt).getTime(),
   };
 
-  const rawWidgetData = metafieldsMap.review_widget_data;
-  if (rawWidgetData) {
-    try {
-      const jm = JSON.parse(rawWidgetData);
-      const rating = parseFloat(jm.average_rating);
-      if (!isNaN(rating)) doc.rating = rating;
-      const reviewsCount = parseInt(jm.number_of_reviews, 10);
-      if (!isNaN(reviewsCount)) doc.reviews_count = reviewsCount;
-    } catch {}
+  const reviewData = ratingsMap?.get(numericId);
+  if (reviewData) {
+    doc.rating = reviewData.rating;
+    doc.reviews_count = reviewData.reviews_count;
   }
 
   return doc;
