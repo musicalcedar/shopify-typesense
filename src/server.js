@@ -7,17 +7,17 @@ import { ensureCollection, importDocuments, getCollectionStats, healthCheck } fr
 
 let syncing = false;
 
-async function runSync({ incremental = false } = {}) {
+async function runSync({ incremental = false, drop = false } = {}) {
   if (syncing) return { error: 'Sync already running', status: 409 };
   syncing = true;
 
   try {
     validateConfig();
 
-    console.log('[sync] Starting', incremental ? 'incremental' : 'full', 'sync');
+    console.log('[sync] Starting', incremental ? 'incremental' : 'full', 'sync', drop ? '(dropping collection)' : '');
     console.log('[sync] Typesense:', config.typesense.protocol + '://' + config.typesense.host + ':' + config.typesense.port);
 
-    await ensureCollection();
+    await ensureCollection({ drop });
     console.log('[sync] Collection ready');
 
     const products = await getAllProducts({ updatedAfter: incremental ? new Date(Date.now() - 2 * 60 * 60 * 1000) : null });
@@ -97,33 +97,9 @@ const server = createServer(async (req, res) => {
       }
 
       const incremental = url.searchParams.get('mode') === 'watch';
-      const syncResult = await runSync({ incremental });
+      const drop = url.searchParams.get('drop') === 'true';
+      const syncResult = await runSync({ incremental, drop });
       json(res, syncResult.status || 200, syncResult.error ? { error: syncResult.error } : syncResult.result);
-      return;
-    }
-
-    if (path === '/debug' && req.method === 'GET') {
-      if (!authenticate(req)) {
-        json(res, 401, { error: 'Unauthorized' });
-        return;
-      }
-      json(res, 200, {
-        typesense: {
-          host: config.typesense.host,
-          port: config.typesense.port,
-          protocol: config.typesense.protocol,
-          apiKeySet: !!config.typesense.apiKey,
-        },
-        shopify: {
-          store: config.shopify.store,
-          apiVersion: config.shopify.apiVersion,
-          tokenSet: !!config.shopify.accessToken,
-        },
-        env: {
-          TYPESENSE_URL: process.env.TYPESENSE_URL ? '(set)' : '(not set)',
-          RAILWAY_ENVIRONMENT: process.env.RAILWAY_ENVIRONMENT || '(not set)',
-        },
-      });
       return;
     }
 

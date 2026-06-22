@@ -36,7 +36,11 @@ export function transformProduct(product) {
   const image = product.images.edges[0]?.node.url || '';
   const description = stripHtml(product.descriptionHtml);
 
-  return {
+  const metafields = Object.fromEntries(
+    (product.metafields?.edges || []).map(e => [e.node.key, e.node.value])
+  );
+
+  const doc = {
     id: numericId,
     title: product.title,
     handle: product.handle,
@@ -56,4 +60,12 @@ export function transformProduct(product) {
     created_at: new Date(product.createdAt).getTime(),
     updated_at: new Date(product.updatedAt).getTime(),
   };
+
+  const rating = parseFloat(metafields.rating);
+  if (!isNaN(rating)) doc.rating = rating;
+
+  const reviewsCount = parseInt(metafields.reviews_count, 10);
+  if (!isNaN(reviewsCount)) doc.reviews_count = reviewsCount;
+
+  return doc;
 }

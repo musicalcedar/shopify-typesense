@@ -22,6 +22,8 @@ const SCHEMA = {
     { name: 'description',     type: 'string',  optional: true },
     { name: 'available',       type: 'bool',    facet: true  },
     { name: 'inventory',       type: 'int32'    },
+    { name: 'rating',          type: 'float',   optional: true },
+    { name: 'reviews_count',   type: 'int32',   optional: true },
     { name: 'created_at',      type: 'int64'    },
     { name: 'updated_at',      type: 'int64'    },
   ],

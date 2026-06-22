@@ -37,6 +37,14 @@ const PRODUCTS_QUERY = `
               node { url }
             }
           }
+          metafields(first: 2, keys: ["judgeme.rating", "judgeme.reviews_count"]) {
+            edges {
+              node {
+                key
+                value
+              }
+            }
+          }
           variants(first: 100) {
             edges {
               node {

@@ -6,7 +6,7 @@ function parseTypesenseConnection() {
     const parsed = new URL(url);
     return {
       host: parsed.hostname,
-      port: parsed.port || '8108',
+      port: parsed.port || (parsed.protocol === 'https:' ? '443' : '8108'),
       protocol: parsed.protocol.replace(':', ''),
     };
   }
