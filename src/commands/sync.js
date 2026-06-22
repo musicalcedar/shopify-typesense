@@ -4,6 +4,7 @@ import { validateConfig } from '../lib/config.js';
 import { getAllProducts } from '../lib/shopify.js';
 import { transformProduct } from '../lib/transform.js';
 import { ensureCollection, importDocuments, getCollectionStats } from '../lib/typesense.js';
+import { getAllReviews } from '../lib/judgeme.js';
 
 export async function syncCommand({ watch, drop }) {
   console.log(chalk.bold('\n🔍 shopify-typesense — sync\n'));
@@ -53,8 +54,18 @@ export async function syncCommand({ watch, drop }) {
     process.exit(1);
   }
 
-  // PASO 3: Transformar
-  const transformed = shopifyProducts.map(transformProduct).filter(Boolean);
+  // PASO 3: Obtener ratings de Judge.me y transformar
+  const ratingsSpinner = ora('Obteniendo ratings de Judge.me...').start();
+  let ratingsMap;
+  try {
+    ratingsMap = await getAllReviews();
+    ratingsSpinner.succeed(`Ratings obtenidos para ${ratingsMap.size} productos.`);
+  } catch (err) {
+    ratingsSpinner.warn('No se pudieron obtener ratings de Judge.me: ' + err.message);
+    ratingsMap = new Map();
+  }
+
+  const transformed = shopifyProducts.map(p => transformProduct(p, ratingsMap)).filter(Boolean);
   const skipped = shopifyProducts.length - transformed.length;
 
   if (skipped > 0) {

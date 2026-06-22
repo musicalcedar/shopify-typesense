@@ -3,6 +3,7 @@ import { validateConfig } from './lib/config.js';
 import { getAllProducts } from './lib/shopify.js';
 import { transformProduct } from './lib/transform.js';
 import { ensureCollection, importDocuments, getCollectionStats } from './lib/typesense.js';
+import { getAllReviews } from './lib/judgeme.js';
 
 async function cronSync() {
   const start = Date.now();
@@ -13,8 +14,11 @@ async function cronSync() {
   const updatedAfter = new Date(Date.now() - 2 * 60 * 60 * 1000);
   await ensureCollection();
 
-  const products = await getAllProducts({ updatedAfter });
-  const transformed = products.map(transformProduct).filter(Boolean);
+  const [products, ratingsMap] = await Promise.all([
+    getAllProducts({ updatedAfter }),
+    getAllReviews(),
+  ]);
+  const transformed = products.map(p => transformProduct(p, ratingsMap)).filter(Boolean);
   const { imported, failed } = await importDocuments(transformed);
   const stats = await getCollectionStats();
 
