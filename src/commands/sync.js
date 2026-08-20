@@ -3,10 +3,10 @@ import ora from 'ora';
 import { validateConfig } from '../lib/config.js';
 import { getAllProducts } from '../lib/shopify.js';
 import { transformProduct } from '../lib/transform.js';
-import { ensureCollection, importDocuments, getCollectionStats } from '../lib/typesense.js';
+import { ensureCollection, importDocuments, getCollectionStats, purgeStaleDocuments } from '../lib/typesense.js';
 import { getAllReviews } from '../lib/judgeme.js';
 
-export async function syncCommand({ watch, drop }) {
+export async function syncCommand({ watch, drop, purge = true, force }) {
   console.log(chalk.bold('\n🔍 shopify-typesense — sync\n'));
 
   try {
@@ -91,6 +91,26 @@ export async function syncCommand({ watch, drop }) {
     importSpinner.fail('Error al importar a Typesense.');
     console.error(chalk.red(err.message));
     process.exit(1);
+  }
+
+  // PASO 5: Purgar lo que ya no está publicado.
+  // Solo en full: el incremental trae un delta, no el catálogo completo.
+  if (!isIncremental && purge) {
+    const purgeSpinner = ora('Buscando documentos obsoletos...').start();
+    try {
+      const result = await purgeStaleDocuments(transformed.map(d => d.id), { force });
+
+      if (result.aborted) {
+        purgeSpinner.warn('Purga omitida: ' + result.reason);
+      } else if (result.deleted === 0) {
+        purgeSpinner.succeed('Sin documentos obsoletos.');
+      } else {
+        purgeSpinner.succeed(`${result.deleted} documentos obsoletos eliminados.`);
+        console.log(chalk.dim('   ' + result.ids.join(', ')));
+      }
+    } catch (err) {
+      purgeSpinner.fail('Error al purgar: ' + err.message);
+    }
   }
 
   // RESUMEN FINAL

@@ -3,12 +3,12 @@ import { createServer } from 'node:http';
 import { config, validateConfig, isRailway } from './lib/config.js';
 import { getAllProducts } from './lib/shopify.js';
 import { transformProduct } from './lib/transform.js';
-import { ensureCollection, importDocuments, getCollectionStats, healthCheck } from './lib/typesense.js';
+import { ensureCollection, importDocuments, getCollectionStats, healthCheck, purgeStaleDocuments } from './lib/typesense.js';
 import { getAllReviews } from './lib/judgeme.js';
 
 let syncing = false;
 
-async function runSync({ incremental = false, drop = false } = {}) {
+async function runSync({ incremental = false, drop = false, purge = true, force = false } = {}) {
   if (syncing) return { error: 'Sync already running', status: 409 };
   syncing = true;
 
@@ -29,6 +29,18 @@ async function runSync({ incremental = false, drop = false } = {}) {
 
     const transformed = products.map(p => transformProduct(p, ratingsMap)).filter(Boolean);
     const { imported, failed } = await importDocuments(transformed);
+
+    // Solo tras un sync full: el incremental trae un delta, no el catálogo.
+    let purgeResult = null;
+    if (!incremental && purge) {
+      purgeResult = await purgeStaleDocuments(transformed.map(d => d.id), { force });
+      if (purgeResult.aborted) {
+        console.warn('[sync] Purge skipped:', purgeResult.reason);
+      } else if (purgeResult.deleted > 0) {
+        console.log('[sync] Purged', purgeResult.deleted, 'stale docs:', purgeResult.ids.join(', '));
+      }
+    }
+
     const stats = await getCollectionStats();
 
     console.log('[sync] Done — imported:', imported, 'failed:', failed, 'total:', stats.num_documents);
@@ -40,6 +52,8 @@ async function runSync({ incremental = false, drop = false } = {}) {
         fetched: products.length,
         imported,
         failed,
+        purged: purgeResult ? purgeResult.deleted : null,
+        purgeSkipped: purgeResult && purgeResult.aborted ? purgeResult.reason : undefined,
         totalIndexed: stats.num_documents,
       },
     };
@@ -102,7 +116,9 @@ const server = createServer(async (req, res) => {
 
       const incremental = url.searchParams.get('mode') === 'watch';
       const drop = url.searchParams.get('drop') === 'true';
-      const syncResult = await runSync({ incremental, drop });
+      const purge = url.searchParams.get('purge') !== 'false';
+      const force = url.searchParams.get('force') === 'true';
+      const syncResult = await runSync({ incremental, drop, purge, force });
       json(res, syncResult.status || 200, syncResult.error ? { error: syncResult.error } : syncResult.result);
       return;
     }

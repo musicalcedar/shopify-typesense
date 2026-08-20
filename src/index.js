@@ -51,6 +51,8 @@ program
   .description('Sincroniza productos de Shopify a Typesense')
   .option('--watch', 'Modo incremental: solo productos modificados en las últimas 2 horas')
   .option('--drop', 'Elimina y recrea la colección antes de sincronizar')
+  .option('--no-purge', 'No elimina del índice los productos que dejaron de estar publicados')
+  .option('--force', 'Ejecuta la purga aunque supere el límite de seguridad')
   .action(syncCommand);
 
 program.parse();
